@@ -84,4 +84,6 @@ Plank places temporary metadata needed for the compilation process in the `DATA_
 
 ## Reference
 
-This project uses pico.min.css from [pico](https://github.com/picocss/pico).
+- This project uses pico.min.css from [pico](https://github.com/picocss/pico).
+
+- Most of this README was copied from [panda](https://github.com/ocku/panda), which is another one of my projects that does the same thing, but less efficiently.
