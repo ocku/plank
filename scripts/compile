@@ -1,0 +1,44 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use autodie;
+
+use Getopt::Long;
+use Text::Template;
+use Text::MultiMarkdown 'markdown';
+use YAML::Tiny;
+
+my %opts;
+GetOptions( \%opts, 'f=s', 't=s', 'm=s' );
+my $template_file = $opts{t} or die 'no template file provided';
+my $input_file    = $opts{f};
+my $meta_files    = $opts{m};
+
+my $yaml = {};
+
+if ( defined($input_file) ) {
+    open( my $fh, '<', $input_file );
+    my $input_content = do { local $/; <$fh> };
+    close($fh);
+
+    my ( $meta_block, $md_block ) = $input_content =~ /^---\n(.*?)\n---(.*)/s;
+
+    $yaml = {
+        %{ YAML::Tiny->read_string($meta_block)->[0] },
+        body => markdown($md_block)
+    };
+}
+
+if ( defined $meta_files ) {
+    $yaml = { %{$yaml}, %{ YAML::Tiny->read($_)->[0] } }
+      for split( ',', $meta_files );
+}
+
+my $template = Text::Template->new( TYPE => 'FILE', SOURCE => $template_file )
+  or die "couldn't construct template: $Text::Template::ERROR";
+
+my $result = $template->fill_in( HASH => $yaml );
+
+if ( defined $result ) { print $result }
+else { die "couldn't fill in template: $Text::Template::ERROR" }

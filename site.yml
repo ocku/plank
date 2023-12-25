@@ -1,0 +1,5 @@
+site:
+  title: Plank
+  description: A tiny static site generator in Perl
+  github: https://github.com/ocku/plank
+  baseUrl: ~

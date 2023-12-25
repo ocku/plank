@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use autodie;
+
+use Getopt::Long;
+use File::Basename;
+use File::Spec::Functions 'catfile';
+use YAML::Tiny;
+
+my %opts;
+GetOptions( \%opts, 'd=s', 'c=i', 'm=s' );
+my $out_dir    = $opts{d} or die "No output dir provided";
+my $chunk_size = $opts{c} || 15;
+my $meta_files = $opts{m};
+
+my @posts;
+foreach my $file (@ARGV) {
+    open( my $fh, '<', $file );
+    my $input_content = do { local $/; <$fh> };
+    close($fh);
+
+    my ($metadata) = $input_content =~ /^---\n(.*?)\n---/s;
+    my ( $filename, $directory ) = fileparse( $file, qr/\.[^.]*/ );
+    push @posts,
+      {
+        %{ YAML::Tiny->read_string($metadata)->[0] },
+        file => $directory . $filename
+      };
+}
+
+my $index   = 0;
+my @sorted  = sort { $b->{sort} <=> $a->{sort} } @posts;
+my $outfile = catfile( $out_dir, ( $index || 'index' ) . ".yml" );
+while (@sorted) {
+    YAML::Tiny->new(
+        {
+            posts    => [ splice( @sorted, 0, $chunk_size ) ],
+            previous => $index > 0 ? $index - 1 || '' : undef,
+            next     => @sorted    ? $index + 1       : undef,
+
+        }
+    )->write($outfile);
+    $index++;
+}
