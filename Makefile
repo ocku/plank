@@ -3,7 +3,7 @@ SITE_POSTS_PER_PAGE 	:= 15
 
 STATIC_DIR						:= static
 POSTS_DIR 	 					:= posts
-TEMPLATE_DIR 					:= templates
+TEMPLATES_DIR 				:= templates
 DATA_DIR 	 						:= .data
 DIST_DIR 	 						:= .dist
 DIST_POSTS_DIR				:= $(DIST_DIR)/$(POSTS_DIR)
@@ -12,8 +12,8 @@ STATIC_FILES 					:= $(shell find $(STATIC_DIR) -type f)
 POSTS_SRC_FILES				:= $(wildcard $(POSTS_DIR)/*.md)
 POSTS_DIST_FILES  		:= $(addprefix $(DIST_DIR)/, $(POSTS_SRC_FILES:%.md=%.html))
 
-POST_TEMPLATE_FILE 		:= $(TEMPLATE_DIR)/post.html
-INDEX_TEMPLATE_FILE 	:= $(TEMPLATE_DIR)/index.html
+POST_TEMPLATE_FILE 		:= $(TEMPLATES_DIR)/post.html
+INDEX_TEMPLATE_FILE 	:= $(TEMPLATES_DIR)/index.html
 
 INDEX_PAGE_NUMBER			:= $(shell printf '%d\n' \
 														"$$(( $(words $(POSTS_SRC_FILES)) / $(SITE_POSTS_PER_PAGE) ))")
@@ -53,10 +53,10 @@ URL=$(shell printf "$(title)" \
 	| tr '[:space:]' '-')
 
 post:
-ifneq ($(wildcard $(POST_SRC_DIR)/$(URL).md),)
+ifneq ($(wildcard $(POSTS_DIR)/$(URL).md),)
 	@echo "[e] A post with url=$(URL)" already exists
 	@exit 1
 else
 	printf -- "---\ntitle: %s\ndate: %s\nsort: %d\n---\n" \
-			"$(title)" "$(shell date '+%F')" "$(shell date '+%s')" > "$(POST_SRC_DIR)/$(URL).md"
+			"$(title)" "$(shell date '+%F')" "$(shell date '+%s')" > "$(POSTS_DIR)/$(URL).md"
 endif
