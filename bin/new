@@ -1,0 +1,41 @@
+#!/usr/bin/perl
+
+use strict;
+use autodie;
+use warnings;
+
+use YAML::Tiny;
+use File::Spec;
+use Getopt::Long;
+use Cwd 'getcwd';
+
+my $base  = "";
+my $frame = "frame/index.html";
+GetOptions( "base=s" => \$base, "frame=s" => \$frame );
+
+$base = File::Spec->catfile( getcwd(), 'www', $base || '' );
+my ($title) = @ARGV;
+
+# https://nokyotsu.com/qscripts/2013/08/convert-titles-into-slugs-using-perl.html
+sub slugify {
+    my $str = shift;
+    $str =~ tr/\000-\177//cd;    # Strip non-ASCII characters (>127)
+    $str =~ s/[^\w\s-]//g;       # Remove all non-word characters
+    $str = lc($str);             # Lowercase
+    $str =~ s/[-\s]+/-/g;    # Replace spaces and hyphens with a single hyphen
+    $str =~ s/^-|-$//g;      # Trim hyphens from both ends
+    return $str;
+}
+
+my $file = slugify($title) . '.md';
+my $yaml = YAML::Tiny->new(
+    {
+        frame => $frame,
+        title => $title,
+        date  => time()
+    }
+);
+
+open( my $fh, '>', File::Spec->catfile( $base, $file ) );
+print $fh $yaml->write_string() . "---\n\n" . "# " . $title . "\n";
+close($fh);

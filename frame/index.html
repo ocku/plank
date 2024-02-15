@@ -5,18 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/pico.min.css" />
     <link rel="stylesheet" href="/style.css" />
-    <title>{$site{title}} - {$title}</title>
+    <title>{{ site.title }}</title>
   </head>
   <body>
     <nav class="container">
       <ul>
         <li>
-          <strong><a href="{$site{baseUrl}}/">{$site{title}}</a></strong>
+          <strong
+            ><a href="{{ site.global.urls.base }}/"
+              >{{ site.global.title }}</a
+            ></strong
+          >
         </li>
       </ul>
       <ul>
         <li>
-          <a href="{$site{github}}" class="contrast" aria-label="View on GitHub"
+          <a
+            href="{{ site.global.urls.git }}"
+            class="contrast"
+            aria-label="View on GitHub"
             ><svg
               aria-hidden="true"
               focusable="false"
@@ -35,10 +42,10 @@
     </nav>
     <header class="container">
       <hgroup>
-        <h1>{$title}</h1>
-        <p>{$description}</p>
+        <h1>{{ site.global.title }}</h1>
+        <p>{{ site.global.description }}</p>
       </hgroup>
     </header>
-    <main class="container">{$body}</main>
+    <main class="container">{{ site.content }}</main>
   </body>
 </html>

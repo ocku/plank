@@ -1,0 +1,72 @@
+#!/usr/bin/perl
+
+use strict;
+use autodie;
+use warnings;
+
+use Cwd 'abs_path';
+use File::Basename;
+
+use YAML::Tiny;
+use Template::Liquid;
+use Text::MultiMarkdown 'markdown';
+
+sub get_file_contents {
+    my $file = shift;
+
+    open( my $fh, '<', $file );
+    my ( $meta, $content ) = do { local $/; <$fh> }
+      =~ /^---\n(.*?)\n---(.*)/s;
+    close($fh);
+
+    ( YAML::Tiny->read_string($meta)->[0], $content );
+}
+
+my ($infile) = @ARGV;
+
+my ( $yaml, $content ) = get_file_contents($infile);
+
+$yaml = { %{ YAML::Tiny->read('site.yml')->[0]; }, %$yaml };
+
+die unless -f $yaml->{frame};
+my $frame = abs_path( $yaml->{frame} );
+
+chdir dirname($infile);
+
+if ( defined $yaml->{index} ) {
+    foreach my $item ( @{ $yaml->{index} } ) {
+        my $name    = $item->{name};
+        my $sort_by = $item->{sort_by};
+        my @slice   = @{ $item->{slice} || [ 0, 10 ] };
+
+        die "not enough items in $name.slice" if @slice lt 1;
+        die "too many items in $name.slice"   if @slice gt 2;
+
+        @slice = ( 0, @slice ) if ( @slice lt 2 );
+        @slice = sort map { int($_) } @slice;
+
+        my @items =
+          map {
+            my ($meta) = get_file_contents($_);
+            my $url = $_;
+            $url =~ s/\.md$//;
+
+            +{ url => $url, %$meta }
+          } glob( $item->{glob} );
+
+        @items = sort { $b->{$sort_by} <=> $a->{$sort_by} } @items
+          if ( defined $sort_by );
+
+        $yaml->{computed}->{index}->{ $item->{name} } = \@items;
+    }
+}
+
+$yaml->{content} =
+  markdown( Template::Liquid->parse($content)->render( site => $yaml ) );
+
+open( my $fh, '<', $frame );
+my $frame_content = do { local $/; <$fh> };
+close($fh);
+
+print Template::Liquid->parse($frame_content)->render( site => $yaml )
+

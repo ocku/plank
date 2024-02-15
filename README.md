@@ -2,88 +2,106 @@
 
 A tiny static site generator in Perl.
 
+- bin/cc: **49**sloc
+- bin/new: **32**sloc
+
+3 dependencies though.
+
 ## Getting Started
 
 ### Clone the repo
 
-```sh
-git clone https://github.com/ocku/plank.git
-```
+    git clone https://github.com/ocku/plank.git
 
 ### Install the dependencies
 
-Plank requires `YAML::Tiny`, `Text::Template` and `Text::MultiMarkdown` to be on your system. You can install them anywhere with the following command:
-
-`cpan YAML::Tiny Text::Template Text::MultiMarkdown`
+    cpan YAML::Tiny Template::Liquid Text::MultiMarkdown
 
 ### Make your first post
 
-```sh
-make post title="Hello World!"
-```
+    make post title="Hello World!"
 
 ### Build
 
-And that's it! You can build the site with `make -j$(nproc)` and it will compile to `DIST_DIR`, which is `.dist` by default.
+    make
 
-### Build + Watch
+And that's it! The compiled site will be written to the `.dist` directory.
 
-Alternatively, you can use a dev server and the `watch` command to update the build as you code and get live updates.
+## Template System
 
-```sh
-# on terminal 1 ------------
-watch -n .5 make -j$(nproc)
-# on terminal 2 ------------
-# you can use your favourite dev server,
-# just make sure it's serving .dist
-npx serve .dist
+Plank uses Liquid for a "double compilation" process. The `www` file is compiled first, and its compiled content is added to the `site.content` metadata key, which the frame can then access along with the rest of the metadata when it is also compiled.
+
+Basically, you can use liquid in the frame and in the file to be compiled and placed in the frame.
+
+## Folder Structure
+
+- `bin` contains the executables used by `make`
+- `frame` contains the frames (templates) used in the compilation process
+- `static` contains static files to be copied to `.dist` after the compilation process ends.
+- `www` contains everything to be compiled (from MD to HTML).
+
+## Special Properties
+
+`site.computed` cannot be set by the user, and it can only be accessed in the template.
+
+### Indexing
+
+> **Note:**
+> As of now there is no support for pagination
+
+You can create and use as many indices as you like in a single file by defining the `index` property in the file's metadata.
+
+Consider this example from `www/index.md`:
+
+```yml
+---
+title: hi
+index:
+  # the name to be used to access this index in the
+  # template.
+  - name: posts
+
+    # this pattern is matched on the same working directory
+    # as the file being compiled.
+    # given a folder structure as follows:
+    #
+    # my/
+    #   dir/
+    #       file_being_compiled.md
+    #       dir2/file_to_index.md
+    #
+    # the pattern to access
+    # file_to_index.md from file_being_compiled.md
+    # would simply be dir2/* or ./dir2/*
+    glob: posts/*.md
+
+    # (optional) sort by a metadata field of the files
+    # being indexed. must be numeric!
+    sort_by:
+      date
+
+      # (optional) slice the results from the
+      # [(start)th] to the [(end)th], given
+      # `slice: [start, end]`
+      #
+      # defaults to [0, 10], and if only given one number,
+      # it will be set as the higher limit.
+      #
+      # for example in this case, [10] becomes [0, 10].
+    slice:
+      - 10
+---
 ```
 
-## Configuration
+This definition gives the template access to the metadata of all files that match the glob, which is accessible through the `index.{name}` property of `site.computed`. See the example below, also from `www/index.md`:
 
-### Metadata
+```md
+## Posts
 
-You can configure the global metadata that all template files have access to by editing the `site.yml` file.
+{% for item in site.computed.index.posts %}
+{% assign time = item.date | date: "%Y-%m-%d" %}
 
-If left without a namespace, any configuration in `site.yml` may be overwritten by the post's metadata.
+- <time datetime="{{time}}">{{time}}</time>: [{{item.title}}]({{item.url}})
 
-### Everything else
-
-Plank is designed to be very simple, so there's no real framework for configuration. You can extend and customise the project as you like by writing your own code.
-
-## File structure
-
-Plank uses 4 directories, each with its own behaviour:
-
-### Templates
-
-The templates directory is used to store your templates. There are three standard templates that must always be present for Plank to work correctly:
-
-- `index.html`: Used to create the index pages (along with pagination)
-- `post.html`: Used to render posts
-
-Templates are used by the compiler when rendering files. They are in the format specified by [`Text::Template`](https://metacpan.org/pod/Text::Template), allowing the execution of embedded Perl.
-
-### Posts
-
-All markdown files in the posts directory are considered by Plank as a file to compile. Each file in this directory should have a title, date and sort parameters, which are automatically created when you call `make post title="My Title"`
-
-Any metadata parameters you add to the post will be accessible within the `post.html` template.
-
-### Static
-
-Everything from the static dir is copied to the `DIST_DIR` (`.dist`). Any clashing files will be overwritten.
-
-### Scripts
-
-Scripts used in the compilation process. You can extend these as you like. I used Perl for the indexer and compiler, but any other language will work just as well.
-
-### Internal
-
-Plank places temporary metadata needed for the compilation process in the `DATA_DIR` (`.data`), and the results in the `DIST_DIR` (`.dist`). You may rename these directories by editing the Makefile.
-
-## Reference
-
-- This project uses pico.min.css from [pico](https://github.com/picocss/pico).
-
-- Most of this README was copied from [panda](https://github.com/ocku/panda), which is another one of my projects that does the same thing, but less efficiently.
+{% endfor %}
+```

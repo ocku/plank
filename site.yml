@@ -1,5 +1,9 @@
-site:
+# defaults
+frame: frame/index.html
+# globals
+global:
   title: Plank
   description: A tiny static site generator in Perl
-  github: https://github.com/ocku/plank
-  baseUrl: ~
+  urls:
+    base: ~
+    git: https://github.com/ocku/plank
